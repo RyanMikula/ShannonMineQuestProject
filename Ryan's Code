@@ -3,37 +3,101 @@ setSize(1280,720);
 
 // Global vars
 var character;
+var characterhp = 100;
 var CollisionObjects = []; // Array that contains all objects you can collide with.
 var GravityEffectors = []; // Put things in here that you want to apply gravity to.
-var CreatureHolder = []; // hold creature elements
+var CreatureHolder = []; // hold creature data
+var CreatureHitbox = []; // hold creature hitboxes
+
+function LoadCharacter(x, y){ // Loads the character at the X and Y pos
+    character = new Rectangle(50, 50);
+    character.setPosition(x, y);
+    character.setColor(Color.blue);
+    add(character);
+}
+LoadCharacter(10, 10);
+
+    
 
 
-function Creature(){ // this function works basically like a class
+function Creature(position, sizeX, sizeY, attackspeed, attackrange, damage, movestep, health, detectrange, image){ // this function works basically like a class
     this.CreatureData = new Object();
     
-    this.CreatureData["AttackSpeed"] = 10;
-    this.CreatureData["AttackRange"] = 10;
-    this.CreatureData["Damage"] = 10;
-    this.CreatureData["MoveStep"] = 4;
+    
+    this.CreatureData["AttackSpeed"] = attackspeed; // how many mil seconds it takes to do damage again
+    this.CreatureData["AttackRange"] = attackrange;
+    this.CreatureData["Damage"] = damage;
+    this.CreatureData["MoveStep"] = movestep;
+    this.CreatureData["Health"] = health;
+    this.CreatureData["Hitbox"] = new Rectangle(sizeX, sizeY);
+    
+    add(this.CreatureData["Hitbox"]);
+    
+    this.CreatureData["Hitbox"].setColor(Color.red);
+    giveGravity(this.CreatureData["Hitbox"]);
     
     this.PrintCreature = function(type){
         println("Creature");
         // spawn creature of type
-    }   
-    this.Attack = function(){
-        
-    }
+    }  
+    println(this.CreatureData["Hitbox"].getX());
+
     this.Spawn = function(x, y){
         
     }
     
+    this.Die = function(creature2){
+        print("die");
+        for(var i = 0; i < CreatureHolder.length; i++){
+            if(CreatureHolder[i].CreatureData["Health"] <= 0){
+                print("equals i");
+                remove(CreatureHolder[i].CreatureData["Hitbox"]);
+                CreatureHolder.remove(i);
+                CreatureHitbox.remove(i);
+            }
+        }    
+    }
+    println(this.CreatureData["Hitbox"].getX());
+    chasey(this.CreatureData["Hitbox"], detectrange, movestep, attackspeed);
+    
+    function chasey(a,b,c, attackspeed){
+        
+        function callChase(){
+            aiChase(a,b,c);
+        }
+        setTimer(callChase, 1);
+    }
+
+    
 }
 
-var newcreature = new Creature(); //make a new creature
+
+var newcreature = new Creature(0, 100, 100, 80, 200, 10, 2, 100, 400); //make a new creature (standard creature stats, useful if confused and don't want to spend time configuring)
 newcreature.PrintCreature();
+CreatureHolder.push(newcreature);
 
 
-
+var attackcounter = 0;
+function Attack(){ // creatures attack
+    //println(newcreature.CreatureData["Hitbox"].getX());
+   // println("attack");
+    for(var i = 0; i < CreatureHolder.length; i++){
+        if(Math.abs(character.getX() - CreatureHolder[i].CreatureData["Hitbox"].getX()) < CreatureHolder[i].CreatureData["AttackRange"]){
+            if(Math.abs(character.getY() - CreatureHolder[i].CreatureData["Hitbox"].getY()) < CreatureHolder[i].CreatureData["AttackRange"]){
+                attackcounter = attackcounter + 1;
+                //println("inside");
+                if(attackcounter == CreatureHolder[i].CreatureData["AttackSpeed"]){
+                    
+                    attackcounter = 0;
+                    characterhp = characterhp - CreatureHolder[i].CreatureData["Damage"]
+                    println("CHAR DAMAGE TAKEN: (HP) = " + characterhp); // MATTHEW, DISPLAY HEALTH HERE
+                }
+                //subtract hp, add counter
+            }
+        }
+    }
+}
+    
 function Wait(time){ 
    // setTimer();     
 }
@@ -47,10 +111,11 @@ var movingRight = false;
 var movingLeft = false;
 var jumping = false;
 
-function giveGravity(object){
+function giveGravity(object){ // check if colliding with character so it doesnt change pos
     var increment = 0;
     
     function Gravity(){
+        //println(newcreature.base.getY());
         if(!getCollider(object)){
             if(object == character){
                 if(!jumping){
@@ -58,12 +123,25 @@ function giveGravity(object){
                     object.setPosition(object.getX(), object.getY() + increment);
                 }
             }else{
+                
                 increment = increment + 1; // constantly add to the increment to simulate weight - falling faster and faster as time falling increases
                 object.setPosition(object.getX(), object.getY() + increment);
             }
         }else{
-            increment = 0;
-            object.setPosition(object.getX(), getCollider(object).getY() - object.getHeight());
+            var passthrough = true;
+            for(var i = 0; i < CreatureHolder.length; i++){
+                if(CreatureHolder[i].CreatureData["Hitbox"] == object && getCollider(object) == character){
+                    passthrough = false
+                }
+            }
+            if(passthrough){
+                increment = 0;
+                object.setPosition(object.getX(), getCollider(object).getY() - object.getHeight());
+            }
+           // }else{
+               // increment = 0;
+               // object.setPosition(object.getX(), getCollider(object).getY() - object.getHeight()); 
+           // }
         }
     }
 
@@ -72,13 +150,9 @@ function giveGravity(object){
 }
 
 
-function LoadCharacter(x, y){ // Loads the character at the X and Y pos
-    character = new Rectangle(50, 50);
-    character.setPosition(x, y);
-    character.setColor(Color.blue);
-    add(character);
-}
-LoadCharacter(10, 10);
+
+
+
 
 
 var touchingGround = false;
@@ -104,8 +178,24 @@ var jumpIncrement = 20;
     
 function CharacterHandler(){ // classy thing kind of pointless - may be useful later so i made it
     
-
-
+    this.Swing = function(){
+        println("swing");
+        for(var i = 0; i < CreatureHolder.length; i++){
+            println("loop");
+            println(CreatureHolder[i].CreatureData["Hitbox"].getX());
+            //println(CreatureHolder[i].CreatureData["Health"]);println(CreatureHolder[i].CreatureData["Health"]);println(CreatureHolder[i].CreatureData["Health"]);
+            if(Math.abs(character.getX() - CreatureHolder[i].CreatureData["Hitbox"].getX()) < 500){
+               // println("workedddddddd");
+                CreatureHolder[i].CreatureData["Health"] = CreatureHolder[i].CreatureData["Health"] - characterDamage
+                println("HIT: " + CreatureHolder[i].CreatureData["Health"]);
+                if(CreatureHolder[i].CreatureData["Health"] <= 0){
+                    println("rundie");
+                    CreatureHolder[i].Die();
+                }
+            }
+        }
+    }
+    
     this.Jump = function(){
         
         println("Jump");
@@ -122,6 +212,8 @@ function CharacterHandler(){ // classy thing kind of pointless - may be useful l
         
     }
     
+
+    
     function checkGround(){
         if(getCollider(character)){
             touchingGround = true;
@@ -133,6 +225,8 @@ function CharacterHandler(){ // classy thing kind of pointless - may be useful l
     print("ran");
     
 }
+
+var characterDamage = 10;
 
 var charHandler = new CharacterHandler();
 
@@ -251,7 +345,8 @@ function keyUp(e){
 keyUpMethod(keyUp);
 
 function mouseClick(e){
-    
+    print("click");
+    charHandler.Swing();
 }
 mouseClickMethod(mouseClick);
 
@@ -260,4 +355,33 @@ function mouseMove(e){
 }
 mouseMoveMethod(mouseMove);
 
+//AI chase player when certain distance away
+function aiChase(enemy, distance, speed){
+    var playerToAI = enemy.getX() - character.getX();
+    if(playerToAI < 0){
+        playerToAI *= -1;
+    }
+    if(playerToAI < distance){
+        if(enemy.getX() < character.getX()){
+            enemy.setPosition(enemy.getX() + speed, enemy.getY());
+        }else{
+            enemy.setPosition(enemy.getX() - speed, enemy.getY());
+        }
+    }
+}
+
+//var level = 0;
+function changeScene(x, y){
+    var end = new Rectangle(50, 25);
+    end.setPosition(x, y);
+    end.setColor(Color.green);
+    
+    add(end)
+    CollisionObjects.push[end];
+    level = level + 1;
+    return getCollider(end);
+}
+changeScene(850, 275);
+
 LoadMap("Map1");
+setTimer(Attack, 1); // calls the attack timer so it constantly checks to see if player is near enemy, if so do damage
