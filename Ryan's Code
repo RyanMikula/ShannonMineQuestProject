@@ -16,7 +16,7 @@ function LoadCharacter(x, y, image){ // Loads the character at the X and Y pos
     character.setColor(Color.blue);
     add(character);
 }
-LoadCharacter(10, 10, getGraphics(4));
+LoadCharacter(10, 10, "https://cdn1.medicalnewstoday.com/content/images/articles/322/322868/golden-retriever-puppy.jpg");
 
     
 
